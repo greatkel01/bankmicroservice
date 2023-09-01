@@ -1,0 +1,176 @@
+version: '3.7'
+services:
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    hostname: "rabbitmq"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - 15672:15672
+      - 5672:5672
+    labels:
+      NAME: rabbitmq
+    networks:
+      - bank-network
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+
+  docker-mysql:
+    image: mysql:5.7
+    restart: always
+    environment:
+      # Password for root access
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: bankingapp
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+    ports:
+      # <Port exposed> : < MySQL Port running inside container>
+      - '3306:3306'
+    expose:
+      # Opens port 3306 on the container
+      - '3306'
+      # Where our data will be persisted
+    volumes:
+      - my-db:/var/lib/mysql
+    networks:
+      - bank-network
+
+  #back-end Spring Boot Application for service discovery service
+  discovery-server:
+    #the docker file in scrum-app build the jar and provides the docker image with the following name.
+    build: ./discovery-server
+    container_name: discovery-server
+    ports:
+      - 8761:8761 # Forward the exposed port 8761 to the container to port 8761 on the host machine
+    networks:
+      - bank-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://discovery-server:8761" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: on-failure
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+
+  #back-end Spring Boot Application for api gateway
+  api-gateway:
+    #the docker file in scrum-app build the jar and provides the docker image with the following name.
+    build: ./api-gateway
+    container_name: api-gateway-service
+    ports:
+      - 9090:9090 # Forward the exposed port 9090 to the container to port 9090 on the host machine
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+    networks:
+      - bank-network
+    links:
+      - discovery-server
+    depends_on:
+      - discovery-server
+    restart: on-failure
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  banking-service:
+    #the docker file in scrum-app build the jar and provides the docker image with the following name.
+    build: ./banking-service
+    container_name: banking-service
+    ports:
+      - 7600:7600 # Forward the exposed port 7600 to the container to port 7600 on the host machine
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      DATABASE_CONNECTION_STRING: jdbc:mysql://docker-mysql:3306/bankingapp?createDatabaseIfNotExist=true
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+    networks:
+      - bank-network
+    links:
+      - docker-mysql
+      - api-gateway
+      - discovery-server
+      - rabbitmq
+    depends_on:
+      - docker-mysql
+      - api-gateway
+      - discovery-server
+      - rabbitmq
+    restart: on-failure
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+  reporting-service:
+    #the docker file in scrum-app build the jar and provides the docker image with the following name.
+    build: ./reporting-service
+    container_name: reporting-service
+    ports:
+      - 7602:7602 # Forward the exposed port 7600 to the container to port 7600 on the host machine
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      DATABASE_CONNECTION_STRING: jdbc:mysql://docker-mysql:3306/bankingappreportingserver?createDatabaseIfNotExist=true
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+    networks:
+      - bank-network
+    links:
+      - docker-mysql
+      - api-gateway
+      - discovery-server
+      - rabbitmq
+    depends_on:
+      - docker-mysql
+      - api-gateway
+      - discovery-server
+      - rabbitmq
+    restart: on-failure
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+  #back-end Spring Boot Application for email service
+  email-service:
+    #the docker file in scrum-app build the jar and provides the docker image with the following name.
+    build: ./email-service
+    container_name: email-service
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+    ports:
+      - 7601:7601 # Forward the exposed port 7601 to the container to port 7601 on the host machine
+    networks:
+      - bank-network
+    links:
+      - discovery-server
+      - api-gateway
+      - rabbitmq
+    depends_on:
+      - discovery-server
+      - api-gateway
+      - rabbitmq
+    restart: on-failure
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+# Names our volume
+volumes:
+  my-db:
+
+# Services Network
+networks:
+  bank-network:
+    name: bank-network
+    driver: bridge
