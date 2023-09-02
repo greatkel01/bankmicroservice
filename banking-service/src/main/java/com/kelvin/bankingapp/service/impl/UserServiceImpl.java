@@ -1,6 +1,7 @@
 package com.kelvin.bankingapp.service.impl;
 
 import com.kelvin.bankingapp.client.EmailClient;
+import com.kelvin.bankingapp.client.TransactionClient;
 import com.kelvin.bankingapp.dto.*;
 import com.kelvin.bankingapp.entity.User;
 import com.kelvin.bankingapp.repository.UserRepository;
@@ -8,7 +9,6 @@ import com.kelvin.bankingapp.service.UserService;
 import com.kelvin.bankingapp.utility.AccountUtils;
 import com.kelvin.bankingapp.utility.EmailUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -21,6 +21,8 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     private final EmailClient emailClient;
+
+    private final TransactionClient transactionClient;
 
     @Override
     public BankResponse createAccount(UserRequest userRequest) {
@@ -123,6 +125,19 @@ public class UserServiceImpl implements UserService {
         userToCredit.setAccountBalance(userToCredit.getAccountBalance().add(request.getAmount()));
         userRepository.save(userToCredit);
 
+        CreateTransactionDTO transaction = new CreateTransactionDTO();
+        transaction.setUserId(userToCredit.getId());
+        transaction.setDirection(Direction.CREDIT);
+        transaction.setAmount(request.getAmount());
+        transaction.setDescription(request.getAmount() + "credited to "+ userToCredit.getAccountNumber());
+
+        try{
+            transactionClient.createTransaction(transaction);
+        } catch (Exception e){
+            //Transaction will not be sent out form the public url
+            e.printStackTrace();
+        }
+
         return BankResponse.builder()
                 .responseCode(AccountUtils.ACCOUNT_CREDITED_SUCCESS)
                 .responseMessage(AccountUtils.ACCOUNT_CREDITED_SUCCESS_MESSAGE)
@@ -160,6 +175,18 @@ public class UserServiceImpl implements UserService {
         else {
             userToDebit.setAccountBalance(userToDebit.getAccountBalance().subtract(request.getAmount()));
             userRepository.save(userToDebit);
+            CreateTransactionDTO transaction = new CreateTransactionDTO();
+            transaction.setUserId(userToDebit.getId());
+            transaction.setDirection(Direction.DEBIT);
+            transaction.setAmount(request.getAmount());
+            transaction.setDescription(request.getAmount() + "debited to "+ userToDebit.getAccountNumber());
+
+            try{
+                transactionClient.createTransaction(transaction);
+            } catch (Exception e){
+                //Transaction will not be sent out form the public url
+                e.printStackTrace();
+            }
             return BankResponse.builder()
                     .responseCode(AccountUtils.ACCOUNT_DEBITED_SUCCESS)
                     .responseMessage(AccountUtils.ACCOUNT_DEBITED_MESSAGE)
@@ -172,9 +199,4 @@ public class UserServiceImpl implements UserService {
         }
 
     }
-
-
-    // balance Enquiry, name Enquiry, credit, debit, transfer
-
-
 }
