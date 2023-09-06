@@ -12,24 +12,21 @@ spring:
   application:
     name: reporting-service
   datasource:
-    url: ${DATABASE_CONNECTION_STRING:jdbc:mysql://localhost:8889/bankingappreportingserver?createDatabaseIfNotExist=true}
-    username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:passme@123}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  sql:
-    init:
-      mode: always
-  jpa:
-    database: mysql
-    hibernate:
-      show_sql: true
-      ddl-auto: create-drop
-      naming:
-        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl
+    url: jdbc:h2:mem:mydb
+    username: sa
+    password: password
+    driverClassName: org.h2.Driver
+    jpa:
+      database: h2
+      spring.jpa.database-platform: org.hibernate.dialect.H2Dialect
+      hibernate:
+        show_sql: true
+        ddl-auto: create-drop
+        naming:
+          implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl
     properties:
       hibernate:
         format_sql: true
-
 management:
   endpoints:
     web:

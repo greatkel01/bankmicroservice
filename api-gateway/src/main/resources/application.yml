@@ -6,7 +6,7 @@ eureka:
     instance-id: ${spring.application.name}-${random.uuid}
 
 server:
-  port: 9090
+  port: 8080
 spring:
   application:
     name: api-gateway

@@ -1,6 +1,5 @@
 version: '3.7'
 services:
-
   rabbitmq:
     image: "rabbitmq:3-management"
     hostname: "rabbitmq"
@@ -19,27 +18,6 @@ services:
     volumes:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
-
-  docker-mysql:
-    image: mysql:5.7
-    restart: always
-    environment:
-      # Password for root access
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: bankingapp
-      MYSQL_USER: root
-      MYSQL_PASSWORD: password
-    ports:
-      # <Port exposed> : < MySQL Port running inside container>
-      - '3306:3306'
-    expose:
-      # Opens port 3306 on the container
-      - '3306'
-      # Where our data will be persisted
-    volumes:
-      - my-db:/var/lib/mysql
-    networks:
-      - bank-network
 
   #back-end Spring Boot Application for service discovery service
   discovery-server:
@@ -68,7 +46,7 @@ services:
     build: ./api-gateway
     container_name: api-gateway-service
     ports:
-      - 9090:9090 # Forward the exposed port 9090 to the container to port 9090 on the host machine
+      - 8080:8080 # Forward the exposed port 9090 to the container to port 9090 on the host machine
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
     networks:
@@ -91,18 +69,13 @@ services:
       - 7600:7600 # Forward the exposed port 7600 to the container to port 7600 on the host machine
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
-      DATABASE_CONNECTION_STRING: jdbc:mysql://docker-mysql:3306/bankingapp?createDatabaseIfNotExist=true
-      MYSQL_USER: root
-      MYSQL_PASSWORD: password
     networks:
       - bank-network
     links:
-      - docker-mysql
       - api-gateway
       - discovery-server
       - rabbitmq
     depends_on:
-      - docker-mysql
       - api-gateway
       - discovery-server
       - rabbitmq
@@ -120,18 +93,13 @@ services:
       - 7602:7602 # Forward the exposed port 7600 to the container to port 7600 on the host machine
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
-      DATABASE_CONNECTION_STRING: jdbc:mysql://docker-mysql:3306/bankingappreportingserver?createDatabaseIfNotExist=true
-      MYSQL_USER: root
-      MYSQL_PASSWORD: password
     networks:
       - bank-network
     links:
-      - docker-mysql
       - api-gateway
       - discovery-server
       - rabbitmq
     depends_on:
-      - docker-mysql
       - api-gateway
       - discovery-server
       - rabbitmq

@@ -34,36 +34,38 @@ public class EmailController {
             throw new ValidationException("Email message object is not valid");
         }
 
-        /**
-         *   Create a mail sender
-         */
-        JavaMailSenderImpl emailSender = new JavaMailSenderImpl();
-        Properties properties = new Properties();
-        properties.put("mail.smtp.starttls.enable", emailConfiguration.isStarttlsEnabled());
-        properties.put("mail.smtp.auth", emailConfiguration.isAuth());
-        emailSender.setHost(emailConfiguration.getHost());
-        emailSender.setPort(emailConfiguration.getPort());
-        emailSender.setUsername(emailConfiguration.getUsername());
-        emailSender.setPassword(emailConfiguration.getPassword());
-        emailSender.setJavaMailProperties(properties);
-
-
-        /**
-         * Create an email instance
-         */
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(emailMessage.getEmail());
-        message.setSubject(emailMessage.getSubject());
-        message.setText(emailMessage.getMessage());
-
-        try{
             /**
-             * Send mail
+             *   Create a mail sender
              */
-            emailSender.send(message);
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+            JavaMailSenderImpl emailSender = new JavaMailSenderImpl();
+            Properties properties = new Properties();
+            properties.put("mail.smtp.starttls.enable", emailConfiguration.isStarttlsEnabled());
+            properties.put("mail.smtp.auth", emailConfiguration.isAuth());
+            emailSender.setHost(emailConfiguration.getHost());
+            emailSender.setPort(emailConfiguration.getPort());
+            emailSender.setUsername(emailConfiguration.getUsername());
+            emailSender.setPassword(emailConfiguration.getPassword());
+            emailSender.setJavaMailProperties(properties);
+
+
+            /**
+             * Create an email instance
+             */
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(from);
+            message.setTo(emailMessage.getEmail());
+            message.setSubject(emailMessage.getSubject());
+            message.setText(emailMessage.getMessage());
+
+            try{
+                /**
+                 * Send mail
+                 */
+                emailSender.send(message);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+
+
     }
 }

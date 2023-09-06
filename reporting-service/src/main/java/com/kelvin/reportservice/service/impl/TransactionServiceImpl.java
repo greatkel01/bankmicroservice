@@ -20,12 +20,11 @@ public class TransactionServiceImpl implements TransactionService {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     @Override
     public void createTransaction(CreateTransactionDTO transaction){
+            var newTransaction =  Transaction.builder().amount(transaction.getAmount())
+                    .userId(transaction.getUserId()).description(transaction.getDescription()).direction(transaction.getDirection())
+                    .build();
 
-        var newTransaction =  Transaction.builder().amount(transaction.getAmount())
-                .userId(transaction.getUserId()).description(transaction.getDescription()).direction(transaction.getDirection())
-                        .build();
 
-        transactionRepository.save(newTransaction);
     }
 
 
